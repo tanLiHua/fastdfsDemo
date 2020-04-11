@@ -26,6 +26,9 @@ public class FastdfsClient {
         @Autowired
         private FastFileStorageClient storageClient;
 
+        @Autowired
+        private FdfsWebServer fdfsWebServer;
+
         @Value("${com.fastdfs.demo.fileStoreDirectory}")
         private String fileStoreDirectory;
 
@@ -37,7 +40,7 @@ public class FastdfsClient {
          */
         public String uploadFile(MultipartFile file) throws IOException {
             StorePath storePath = storageClient.uploadFile(file.getInputStream(),file.getSize(), FilenameUtils.getExtension(file.getOriginalFilename()),null);
-            return storePath.getFullPath();
+            return getResAccessUrl(storePath);
         }
 
         /**
@@ -56,7 +59,7 @@ public class FastdfsClient {
         public String uploadFileAndCrtThumbImage(File file) throws IOException {
             FileInputStream inputStream = new FileInputStream (file);
             StorePath storePath = storageClient.uploadImageAndCrtThumbImage(inputStream, file.length(), FilenameUtils.getExtension(file.getName()), null);
-            return storePath.getFullPath();
+            return getResAccessUrl(storePath);
         }
 
         /**
@@ -68,7 +71,7 @@ public class FastdfsClient {
         public String uploadFile(File file) throws IOException {
             FileInputStream inputStream = new FileInputStream (file);
             StorePath storePath = storageClient.uploadFile(inputStream,file.length(), FilenameUtils.getExtension(file.getName()),null);
-            return storePath.getFullPath();
+            return getResAccessUrl(storePath);
         }
 
 
@@ -82,16 +85,14 @@ public class FastdfsClient {
             byte[] buff = content.getBytes(Charset.forName("UTF-8"));
             ByteArrayInputStream stream = new ByteArrayInputStream(buff);
             StorePath storePath = storageClient.uploadFile(stream,buff.length, fileExtension,null);
-            return storePath.getFullPath();
+            return getResAccessUrl(storePath);
         }
 
         // 封装图片完整URL地址
-      /*  private String getResAccessUrl(StorePath storePath) {
-            String fileUrl =  storePath.getFullPath();
-            System.out.println("Path:" +storePath.getPath());
-            System.out.println("FullPath:" +storePath.getFullPath());
+        private String getResAccessUrl(StorePath storePath) {
+            String fileUrl = fdfsWebServer.getWebServerUrl() + storePath.getFullPath();
             return fileUrl;
-        }*/
+        }
 
 
     /**
@@ -104,10 +105,12 @@ public class FastdfsClient {
     public String download(String fileUrl) throws Exception {
         String newFileName = null;
         if (fileUrl != null && !fileUrl.isEmpty() ) {
-            //group1/M00/00/00/rBB8pF6QVUCAWoSuAABlq8b6-yc941.jpg
-            String group = fileUrl.substring(0, fileUrl.indexOf("/"));
-            String path = fileUrl.substring(fileUrl.indexOf("/") + 1);
-            String fileName = fileUrl.substring(fileUrl.lastIndexOf("/")+1);
+            //http://localhost:22122/group1/M00/00/00/rBB8pF6QVUCAWoSuAABlq8b6-yc941.jpg
+            String tmpPath = fileUrl.substring(fileUrl.indexOf("//")+2);
+            String filePath = tmpPath.substring(tmpPath.indexOf("/")+1);
+            String group = filePath.substring(0, filePath.indexOf("/"));
+            String path = filePath.substring(filePath.indexOf("/") + 1);
+            String fileName = filePath.substring(filePath.lastIndexOf("/")+1);
             BufferedOutputStream bos = null;
             try {
 
