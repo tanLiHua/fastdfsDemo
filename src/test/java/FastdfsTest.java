@@ -1,5 +1,6 @@
 import com.fastdfs.SpringbootApplication;
 import com.fastdfs.utils.FastdfsClient;
+import com.github.tobato.fastdfs.exception.FdfsConnectException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,12 +24,22 @@ public class FastdfsTest {
     private FastdfsClient fastdfsClient;
 
     @Test
-    public void uploadFile()  {
+    public void uploadFile() {
         try {
             String fileUrl = fastdfsClient.uploadFileAndCrtThumbImage(new File("C:\\Users\\Administrator\\Desktop\\mailFile\\3.jpg"));
             System.out.println("上传文件成功,文件存储地址：" +fileUrl);
-        } catch (IOException e) {
+            //fastdfs没有实现tracker-list的高可用。即使配置了list,当有一个宕机时还是无法启动获取连接
+            // 下面进行手动捕获异常再次获取连接。第一次连接不成功会设置连接不可用并抛出异常。我们只需捕获异常再次获取连接就会换一个地址
+        } catch (FdfsConnectException e) {
+            try {
+                String s = fastdfsClient.uploadFileAndCrtThumbImage(new File("C:\\Users\\Administrator\\Desktop\\mailFile\\3.jpg"));
+                System.out.println(s);
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
             System.out.println("上传文件失败：" + e.getMessage());
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
